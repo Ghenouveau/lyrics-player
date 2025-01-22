@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Lyrics Display</title>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            height: 100vh;
+        }
+
+        .lyrics-column {
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* Center horizontally */
+            justify-content: flex-start;
+            /* Align content to the top */
+            background: #252525;
+            position: relative;
+            transition: background-color 0.2s ease;
+        }
+
+        .lyrics-column:hover {
+            background-color: #2a2a2a;
+        }
+
+        .lyrics-column h3 {
+            margin: 0 0 20px 0;
+            padding-bottom: 12px;
+            font-size: 1.1em;
+            font-weight: 500;
+            color: #8a8a8a;
+            border-bottom: 1px solid #383838;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            text-align: center;
+            /* Center the title text */
+        }
+
+        #originalLyricsDisplayArea,
+        #translatedLyricsDisplayArea {
+            font-size: 1.2em;
+            line-height: 1.8;
+            white-space: pre-line;
+            overflow-y: auto;
+            max-height: calc(100vh - 80px);
+            padding: 0 15px;
+            color: #d0d0d0;
+            scrollbar-width: thin;
+            scrollbar-color: #4a4a4a transparent;
+            text-align: center;
+            /* Center the lyrics text */
+            width: 100%;
+            /* Ensure full width for centering */
+        }
+
+        /* Custom scrollbar */
+        #originalLyricsDisplayArea::-webkit-scrollbar,
+        #translatedLyricsDisplayArea::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #originalLyricsDisplayArea::-webkit-scrollbar-thumb,
+        #translatedLyricsDisplayArea::-webkit-scrollbar-thumb {
+            background-color: #4a4a4a;
+            border-radius: 4px;
+        }
+
+        #originalLyricsColumn {
+            border-right: 1px solid #333;
+        }
+
+        #originalLyricsColumn::after {
+            content: '';
+            position: absolute;
+            right: -1px;
+            top: 25px;
+            bottom: 25px;
+            width: 1px;
+            background: linear-gradient(to bottom,
+                    transparent 0%,
+                    #404040 20%,
+                    #404040 80%,
+                    transparent 100%);
+        }
+
+        /* Subtle text shadow for better readability */
+        #originalLyricsDisplayArea,
+        #translatedLyricsDisplayArea {
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="lyrics-column" id="originalLyricsColumn">
+        <h3>Original Lyrics</h3>
+        <div id="originalLyricsDisplayArea">
+            Select a song and play audio in the main window.
+        </div>
+    </div>
+    <div class="lyrics-column" id="translatedLyricsColumn">
+        <h3>Translated Lyrics</h3>
+        <div id="translatedLyricsDisplayArea">
+            Select a song and play audio in the main window.
+        </div>
+    </div>
+
+    <script>
+        const originalLyricsDisplayArea = document.getElementById('originalLyricsDisplayArea');
+        const translatedLyricsDisplayArea = document.getElementById('translatedLyricsDisplayArea');
+
+        window.addEventListener('message', function (event) {
+            if (event.data) {
+                if (event.data.originalLyric !== undefined) {
+                    originalLyricsDisplayArea.textContent = event.data.originalLyric;
+                    originalLyricsDisplayArea.scrollTop = 0;
+                }
+                if (event.data.translatedLyric !== undefined) {
+                    translatedLyricsDisplayArea.textContent = event.data.translatedLyric;
+                    translatedLyricsDisplayArea.scrollTop = 0;
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

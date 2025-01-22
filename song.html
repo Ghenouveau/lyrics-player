@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Lyric Collection (Synched Lyrics + Sticky Audio + Undo)</title>
+    <link rel="stylesheet" href="css/all.min.css">
+    <style>
+        /* ... (CSS - Mostly unchanged from previous version) ... */
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+            margin: 20px;
+            background-color: #f8f8f8;
+            color: #333;
+            padding-bottom: 160px;
+            box-sizing: border-box;
+            position: relative;
+            line-height: 1.6;
+            /* Improved default line height for body text */
+        }
+
+        h1 {
+            color: #4477aa;
+            margin-bottom: 15px;
+            /* More spacing below main heading */
+            text-align: center;
+            /* Center the main heading */
+        }
+
+        h3 {
+            color: #4477aa;
+            margin-top: 20px;
+            /* More top margin for section headings */
+            margin-bottom: 10px;
+            font-size: 1.2em;
+            /* Slightly larger section headings */
+        }
+
+        .controls {
+            margin-bottom: 25px;
+            /* Increased margin below controls */
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            /* Increased gap between controls */
+            align-items: center;
+            background-color: #fff;
+            /* White background for controls section */
+            padding: 15px 20px;
+            /* Padding for controls section */
+            border-radius: 8px;
+            /* Rounded corners for controls section */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+            /* Subtle shadow for controls section */
+        }
+
+
+        .controls>* {
+            flex: 1 0 auto;
+            min-width: 100px;
+            /* Minimum width for controls to prevent collapsing */
+        }
+
+
+        .controls button,
+        .controls input,
+        .controls label {
+            padding: 10px 12px;
+            /* Slightly adjusted padding for controls */
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            /* Slightly more rounded corners for controls */
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+            /* Subtle inset shadow for input/label */
+            transition: border-color 0.2s ease;
+            /* Smooth border color transition */
+        }
+
+        .controls input:focus,
+        .controls button:focus,
+        .controls label:focus {
+            border-color: #4477aa;
+            /* Highlight border on focus */
+            outline: none;
+            /* Remove default focus outline */
+        }
+
+        .controls button {
+            background-color: #4477aa;
+            color: white;
+            border-color: #4477aa;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            /* Shadow for buttons */
+        }
+
+        .controls button:hover {
+            background-color: #3a6aa3;
+            /* Slightly darker hover color */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+            /* Increased shadow on hover */
+        }
+
+        #songSearch,
+        .controls label {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-right: 10px;
+            flex-grow: 1;
+            /* Allow search input to take more space */
+        }
+
+        #songList {
+            border: 1px solid #ddd;
+            padding: 15px;
+            /* Increased padding for song list */
+            margin-bottom: 25px;
+            /* Increased margin below song list */
+            max-height: 350px;
+            /* Slightly taller song list */
+            overflow-y: auto;
+            border-radius: 8px;
+            /* Rounded corners for song list */
+            background-color: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            /* Subtle shadow for song list */
+        }
+
+        .song-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            /* Adjusted padding for song items */
+            border-bottom: 1px dotted #eee;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+            /* Smooth hover transition for song items */
+        }
+
+        .song-item:last-child {
+            border-bottom: none;
+        }
+
+        .song-item:hover:not(.selected) {
+            background-color: #f9f9f9;
+            /* Light grey hover for song items */
+        }
+
+        .song-item.selected {
+            background-color: #e0e0e0;
+            border-left: 3px solid #4477aa;
+            /* Visual indicator for selected song */
+            padding-left: 9px;
+            /* Adjust padding to compensate for border */
+        }
+
+        .song-title {
+            flex-grow: 1;
+        }
+
+        .song-actions button {
+            margin-left: 8px;
+            /* Adjusted margin for song action buttons */
+            padding: 6px 10px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            /* Slightly more rounded action buttons */
+            background-color: white;
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+            /* Smooth transitions */
+            color: #666;
+            /* Darker color for action buttons */
+        }
+
+        .song-actions button:hover {
+            background-color: #f0f0f0;
+            border-color: #bbb;
+        }
+
+        .song-edit-input {
+            flex-grow: 1;
+            padding: 8px;
+            box-sizing: border-box;
+            font-size: inherit;
+            font-family: inherit;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        #lyricDisplay {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border: 1px solid #ddd;
+            margin-bottom: 25px;
+            /* Increased margin below lyric display */
+            border-radius: 8px;
+            /* Rounded corners for lyric display */
+            background-color: white;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            /* Subtle shadow for lyric display */
+        }
+
+        .lyric-column {
+            padding: 15px;
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.4;
+            border-right: 1px solid #eee;
+            overflow-wrap: break-word;
+        }
+
+        .lyric-column:last-child {
+            border-right: none;
+        }
+
+        .lyric-column h3 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            /* Adjusted margin below lyric column headings */
+            font-size: 1.1em;
+            color: #555;
+            text-transform: uppercase;
+            /* Uppercase section headings */
+            letter-spacing: 0.05em;
+            /* Slight letter spacing for headings */
+        }
+
+        .lyric-line-container {
+            counter-reset: lyric-counter;
+        }
+
+        .lyric-line {
+            display: flex;
+            padding: 4px 0;
+            border-bottom: 1px dotted #f0f0f0;
+            transition: background-color 0.2s ease;
+        }
+
+        .lyric-line:last-child {
+            border-bottom: none;
+        }
+
+        .lyric-line:hover {
+            background-color: #f9f9f9;
+        }
+
+        .line-number {
+            counter-increment: lyric-counter;
+            width: 25px;
+            flex-shrink: 0;
+            font-size: 0.8em;
+            color: #888;
+            text-align: right;
+            padding-right: 8px;
+            user-select: none;
+        }
+
+        .line-number::before {
+            content: counter(lyric-counter);
+        }
+
+        .lyric-text {
+            flex-grow: 1;
+            white-space: pre-wrap;
+        }
+
+        .lyric-line.highlighted {
+            background-color: #e6f7ff;
+            font-weight: bold;
+        }
+
+
+        .input-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            margin-bottom: 20px;
+            gap: 20px;
+        }
+
+        .input-area textarea {
+            width: 100%;
+            box-sizing: border-box;
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.4;
+            min-height: 180px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .input-area div {
+            padding: 0;
+        }
+
+        .input-area label {
+            display: block;
+            margin-bottom: 10px;
+            /* Increased margin below input labels */
+            font-weight: 500;
+            /* Slightly bolder input labels */
+            color: #555;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .input-area label button {
+            margin-left: 10px;
+            padding: 5px 8px;
+            font-size: 0.8em;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            background-color: white;
+            color: #555;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .input-area label button:hover {
+            background-color: #f0f0f0;
+        }
+
+
+        button {
+            padding: 10px 18px;
+            cursor: pointer;
+            border: 1px solid #4477aa;
+            border-radius: 5px;
+            background-color: white;
+            color: #4477aa;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        button:hover {
+            background-color: #4477aa;
+            color: white;
+        }
+
+        hr {
+            border: 0;
+            border-top: 1px solid #ddd;
+            margin: 20px 0;
+        }
+
+
+        #audioPlayerContainer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            border-top: 1px solid #ddd;
+            padding: 15px 20px;
+            /* Increased padding */
+            background-color: white;
+            display: flex;
+            align-items: center;
+            /* Align items vertically in the container */
+            box-sizing: border-box;
+            z-index: 99;
+            gap: 15px;
+            /* Spacing between player elements */
+        }
+
+        #audioPlayer {
+            display: none;
+            /* Hide default audio player */
+        }
+
+        .custom-audio-controls {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+            /* Take remaining space */
+        }
+
+        .play-pause-button,
+        .volume-button {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            /* Larger icons */
+            color: #555;
+            cursor: pointer;
+            padding: 5px;
+            margin: 0 5px;
+        }
+
+        .play-pause-button:hover,
+        .volume-button:hover {
+            color: #777;
+        }
+
+        .progress-container {
+            flex-grow: 1;
+            background-color: #eee;
+            border-radius: 5px;
+            height: 8px;
+            /* Thicker progress bar */
+            cursor: pointer;
+            overflow: hidden;
+            /* Clip thumb inside container */
+        }
+
+        #audioProgressBar {
+            height: 100%;
+            width: 0;
+            /* Updated by JS */
+            background-color: #4477aa;
+            border-radius: 5px;
+            transition: width 0.1s linear;
+            /* Smooth progress bar animation */
+        }
+
+        #audioTimeDisplay {
+            font-size: 0.9em;
+            color: #555;
+            width: 100px;
+            /* Fixed width for time display */
+            text-align: center;
+        }
+
+        .volume-slider-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        #volumeSlider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 80px;
+            /* Shorter slider */
+            height: 8px;
+            background: #ddd;
+            border-radius: 5px;
+            outline: none;
+            margin-left: 5px;
+            vertical-align: middle;
+            /* Align with volume button */
+        }
+
+        #volumeSlider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background-color: #4477aa;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        #volumeSlider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background-color: #4477aa;
+            cursor: pointer;
+            border-radius: 50%;
+            border: none;
+            /* Remove border for Firefox */
+        }
+
+        #noSongSelectedMessage {
+            text-align: center;
+            margin-bottom: 15px;
+            font-style: italic;
+            color: #777;
+        }
+
+        .undo-container {
+            text-align: right;
+            margin-bottom: 5px;
+        }
+
+        .undo-container button {
+            padding: 8px 12px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>My Lyric Collection</h1>
+
+    <div class="controls">
+        <button onclick="undoTimestampOriginal()" disabled id="undoButtonOriginal">Undo</button>
+        <button onclick="undoTimestampTranslated()" disabled id="undoButtonTranslated">Undo</button>
+        <input type="text" id="songTitleInput" placeholder="Song Title">
+        <button onclick="addSong()">Add Song</button>
+        <button onclick="openLyricsWindow()">Open Lyrics Window</button>
+        <button onclick="exportLyrics()">Export Lyrics (JSON)</button>
+        <button onclick="clearAllData()">Clear All Data</button>
+        <input type="file" id="audioUpload" accept=".mp3" hidden>
+        <label for="audioUpload" style="cursor: pointer;">Upload Audio (MP3)</label>
+    </div>
+
+    <input type="text" id="songSearch" placeholder="Search Songs...">
+    <hr>
+
+    <div id="songList">
+        <!-- Song titles will be listed here -->
+    </div>
+    <hr>
+
+    <div id="noSongSelectedMessage"></div>
+
+    <div id="lyricDisplay">
+        <div class="lyric-column" id="originalLyricDisplay">
+            <h3>Original Lyrics</h3>
+            <div class="lyric-line-container" id="originalLyricLines">
+                <!-- Original lyrics lines will be rendered here -->
+            </div>
+        </div>
+        <div class="lyric-column" id="translatedLyricDisplay">
+            <h3>Translated Lyrics</h3>
+            <div class="lyric-line-container" id="translatedLyricLines">
+                <!-- Translated lyrics lines will be rendered here -->
+            </div>
+        </div>
+    </div>
+    <hr>
+
+    <div class="input-area">
+        <div>
+            <label for="originalLyricInput">
+                Original Lyrics:
+                <button type="button" onclick="syncTimestampOriginal()">Sync Timestamp</button>
+            </label>
+            <textarea id="originalLyricInput" rows="10" placeholder="Enter original lyrics here..."></textarea>
+        </div>
+        <div>
+            <label for="translatedLyricInput">
+                Translated Lyrics:
+                <button type="button" onclick="syncTimestampTranslated()">Sync Timestamp</button>
+            </label>
+            <textarea id="translatedLyricInput" rows="10" placeholder="Enter translated lyrics here..."></textarea>
+        </div>
+    </div>
+
+    <button onclick="saveLyrics()">Save Lyrics</button>
+    <span id="saveStatus" style="margin-left: 10px; color: green; display: none;">Lyrics Saved!</span>
+
+    <div id="audioPlayerContainer">
+        <audio id="audioPlayer"></audio>
+        <div class="custom-audio-controls">
+            <button class="play-pause-button" onclick="togglePlay()">
+                <i id="playPauseIcon" class="fas fa-play"></i>
+            </button>
+            <div class="progress-container" onclick="seekAudio(event)">
+                <div id="audioProgressBar"></div>
+            </div>
+            <span id="audioTimeDisplay">00:00 / 00:00</span>
+            <div class="volume-slider-container">
+                <button class="volume-button" onclick="toggleVolumeSlider()">
+                    <i id="volumeIcon" class="fas fa-volume-up"></i>
+                </button>
+                <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.30"
+                    oninput="setVolume(this.value)" style="display: none;">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const songListDiv = document.getElementById('songList');
+        const originalLyricDisplayDiv = document.getElementById('originalLyricDisplay');
+        const translatedLyricDisplayDiv = document.getElementById('translatedLyricDisplay');
+        const originalLyricInputTextarea = document.getElementById('originalLyricInput');
+        const translatedLyricInputTextarea = document.getElementById('translatedLyricInput');
+        const songTitleInput = document.getElementById('songTitleInput');
+        const songSearchInput = document.getElementById('songSearch');
+        const saveStatusSpan = document.getElementById('saveStatus');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const originalLyricLinesContainer = document.getElementById('originalLyricLines');
+        const translatedLyricLinesContainer = document.getElementById('translatedLyricLines');
+        const audioTimeDisplay = document.getElementById('audioTimeDisplay');
+        const audioProgressBarElem = document.getElementById('audioProgressBar'); // Corrected variable name
+        const undoButtonOriginal = document.getElementById('undoButtonOriginal');
+        const undoButtonTranslated = document.getElementById('undoButtonTranslated');
+        const noSongSelectedMessage = document.getElementById('noSongSelectedMessage');
+        const playPauseIcon = document.getElementById('playPauseIcon'); // Icons for custom controls
+        const volumeIcon = document.getElementById('volumeIcon'); // Volume icon
+        const volumeSliderElem = document.getElementById('volumeSlider'); // Volume slider
+
+
+        let currentSongTitle = null;
+        let audioUploadInput = document.getElementById('audioUpload');
+        let songData = getLyricData();
+        let lyricDataParsed = { original: [], translated: [] };
+        let currentHighlightedLineIndex = { original: -1, translated: -1 };
+        let previousLyricText = { original: null, translated: null };
+        let lyricsWindow = null;
+        let isVolumeSliderVisible = false; // Track volume slider visibility
+
+        loadSongList();
+        loadLyrics(getFirstSongTitle());
+
+        songTitleInput.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                addSong();
+            }
+        });
+
+        audioUploadInput.addEventListener('change', handleAudioUpload);
+        audioPlayer.addEventListener('timeupdate', syncLyrics);
+        audioPlayer.addEventListener('timeupdate', updateTimeDisplay);
+        audioPlayer.addEventListener('loadedmetadata', updateTimeDisplay);
+
+        document.addEventListener('keydown', function (event) {
+            if (event.ctrlKey && event.key === 'z') {
+                if (document.activeElement === originalLyricInputTextarea) {
+                    undoTimestampOriginal();
+                } else if (document.activeElement === translatedLyricInputTextarea) {
+                    undoTimestampTranslated();
+                }
+            }
+        });
+
+
+        function loadSongList() {
+            songListDiv.innerHTML = '';
+            songData = getLyricData();
+            const songs = Object.keys(songData);
+
+            if (songs.length === 0) {
+                songListDiv.innerHTML = '<div>No songs yet. Add one above!</div>';
+                noSongSelectedMessage.textContent = "No songs added yet. Add one to begin.";
+                originalLyricLinesContainer.innerHTML = "";
+                translatedLyricLinesContainer.innerHTML = "";
+                originalLyricInputTextarea.value = "";
+                translatedLyricInputTextarea.value = "";
+                audioPlayer.src = "";
+                audioTimeDisplay.textContent = "00:00 / 00:00";
+                audioProgressBar.value = 0;
+                currentSongTitle = null;
+                resetHighlighting();
+                return;
+            }
+
+            const searchTerm = songSearchInput.value.toLowerCase();
+            const filteredSongs = songs.filter(title => title.toLowerCase().includes(searchTerm));
+
+            if (filteredSongs.length === 0) {
+                songListDiv.innerHTML = '<div>No songs match your search.</div>';
+                noSongSelectedMessage.textContent = "No songs match your search.";
+                originalLyricLinesContainer.innerHTML = "";
+                translatedLyricLinesContainer.innerHTML = "";
+                originalLyricInputTextarea.value = "";
+                translatedLyricInputTextarea.value = "";
+                audioPlayer.src = "";
+                audioTimeDisplay.textContent = "00:00 / 00:00";
+                audioProgressBar.value = 0;
+                currentSongTitle = null;
+                resetHighlighting();
+                return;
+            }
+
+            noSongSelectedMessage.textContent = "";
+
+            filteredSongs.forEach(title => {
+                const songItemDiv = document.createElement('div');
+                songItemDiv.classList.add('song-item');
+
+                const titleSpan = document.createElement('span');
+                titleSpan.classList.add('song-title');
+                titleSpan.textContent = title;
+                titleSpan.onclick = () => selectSong(title); // Corrected here
+
+
+                const actionsDiv = document.createElement('div');
+                actionsDiv.classList.add('song-actions');
+
+                const editButton = document.createElement('button');
+                editButton.textContent = 'Edit';
+                editButton.onclick = (event) => { event.stopPropagation(); editSongTitle(title, songItemDiv); };
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.onclick = (event) => { event.stopPropagation(); deleteSong(title); };
+
+                actionsDiv.appendChild(editButton);
+                actionsDiv.appendChild(deleteButton);
+
+                songItemDiv.appendChild(titleSpan);
+                songItemDiv.appendChild(actionsDiv);
+                songListDiv.appendChild(songItemDiv);
+            });
+
+            if (currentSongTitle && filteredSongs.includes(currentSongTitle)) {
+                selectSong(currentSongTitle);
+            } else if (filteredSongs.length > 0) {
+                selectSong(filteredSongs[0]);
+            }
+        }
+
+
+        function getFirstSongTitle() {
+            const songs = Object.keys(getLyricData());
+            return songs.length > 0 ? songs[0] : null;
+        }
+
+
+        function addSong() {
+            const newTitle = songTitleInput.value.trim();
+            if (!newTitle) {
+                alert("Please enter a song title.");
+                return;
+            }
+
+            if (songData[newTitle]) {
+                alert("Song title already exists. Please use a different title.");
+                return;
+            }
+
+            songData[newTitle] = { original: "", translated: "", audioFile: null };
+            localStorage.setItem('lyricCollection', JSON.stringify(songData));
+            songTitleInput.value = "";
+            loadSongList();
+            selectSong(newTitle);
+            songTitleInput.focus();
+        }
+
+
+        function selectSong(title) {
+            const currentlySelected = songListDiv.querySelector('.selected');
+            if (currentlySelected) {
+                currentlySelected.classList.remove('selected');
+            }
+
+            const selectedSongDiv = Array.from(songListDiv.querySelectorAll('.song-item')).find(div => div.querySelector('.song-title').textContent === title);
+            if (selectedSongDiv) {
+                selectedSongDiv.classList.add('selected');
+            }
+
+            currentSongTitle = title;
+            loadLyrics(title);
+        }
+
+        function loadLyrics(title) { // **Modified loadLyrics function**
+            noSongSelectedMessage.textContent = "";
+
+            if (!title) {
+                noSongSelectedMessage.textContent = "Select a song from the list.";
+                originalLyricLinesContainer.innerHTML = "";
+                translatedLyricLinesContainer.innerHTML = "";
+                originalLyricInputTextarea.value = "";
+                translatedLyricInputTextarea.value = "";
+                audioPlayer.src = "";
+                audioTimeDisplay.textContent = "00:00 / 00:00";
+                audioProgressBar.value = 0;
+                resetHighlighting();
+                updateLyricsWindow("", ""); // **Clear lyrics window on no song selected - BOTH columns**
+                return;
+            }
+            if (songData && songData[title]) {
+                parseLyricsWithTimestamps('original', songData[title].original);
+                parseLyricsWithTimestamps('translated', songData[title].translated);
+                renderLyrics('original');
+                renderLyrics('translated');
+                originalLyricInputTextarea.value = songData[title].original;
+                translatedLyricInputTextarea.value = songData[title].translated;
+                audioPlayer.src = songData[title].audioFile || "";
+                resetHighlighting();
+                updateTimeDisplay();
+                audioPlayer.volume = 0.30;
+                // **Update lyrics window with initial lyrics - BOTH columns**
+                updateLyricsWindow(
+                    lyricDataParsed.original.map(line => line.text).join('\n'),
+                    lyricDataParsed.translated.map(line => line.text).join('\n')
+                );
+            } else {
+                originalLyricLinesContainer.innerHTML = "";
+                translatedLyricLinesContainer.innerHTML = "";
+                originalLyricInputTextarea.value = "";
+                translatedLyricInputTextarea.value = "";
+                audioPlayer.src = "";
+                audioTimeDisplay.textContent = "00:00 / 00:00";
+                audioProgressBar.value = 0;
+                resetHighlighting();
+                updateLyricsWindow("", ""); // **Clear lyrics window on no lyrics loaded - BOTH columns**
+            }
+        }
+
+        function parseLyricsWithTimestamps(lyricType, lyricsText) {
+            lyricDataParsed[lyricType] = [];
+            const lines = lyricsText.split('\n');
+            lines.forEach(line => {
+                const timestampRegex = /^\[(\d{2}):(\d{2})\.(\d{3})\](.*)/;
+                const match = line.match(timestampRegex);
+                if (match) {
+                    const minutes = parseInt(match[1], 10);
+                    const seconds = parseInt(match[2], 10);
+                    const milliseconds = parseInt(match[3], 10);
+                    const timestamp = minutes * 60 + seconds + milliseconds / 1000;
+                    const lyricLine = match[4].trim();
+                    lyricDataParsed[lyricType].push({ timestamp: timestamp, text: lyricLine });
+                } else {
+                    lyricDataParsed[lyricType].push({ timestamp: null, text: line });
+                }
+            });
+        }
+
+
+        function renderLyrics(lyricType) {
+            const lyricContainer = (lyricType === 'original') ? originalLyricLinesContainer : translatedLyricLinesContainer;
+            lyricContainer.innerHTML = '';
+            lyricDataParsed[lyricType].forEach((lineData, index) => {
+                const lyricLineDiv = document.createElement('div');
+                lyricLineDiv.classList.add('lyric-line');
+                lyricLineDiv.dataset.lineIndex = index;
+
+                const lineNumberSpan = document.createElement('span');
+                lineNumberSpan.classList.add('line-number');
+
+                const lyricTextSpan = document.createElement('span');
+                lyricTextSpan.classList.add('lyric-text');
+                lyricTextSpan.textContent = lineData.text || '';
+
+                lyricLineDiv.appendChild(lineNumberSpan);
+                lyricLineDiv.appendChild(lyricTextSpan);
+                lyricContainer.appendChild(lyricLineDiv);
+            });
+        }
+
+
+        function saveLyrics() {
+            if (!currentSongTitle) {
+                alert("Please select a song from the list first.");
+                return;
+            }
+            const originalLyrics = originalLyricInputTextarea.value;
+            const translatedLyrics = translatedLyricInputTextarea.value;
+            songData[currentSongTitle] = { ...songData[currentSongTitle], original: originalLyrics, translated: translatedLyrics };
+
+            localStorage.setItem('lyricCollection', JSON.stringify(songData));
+            saveStatusSpan.style.display = 'inline';
+            setTimeout(() => { saveStatusSpan.style.display = 'none'; }, 1500);
+            parseLyricsWithTimestamps('original', originalLyrics);
+            parseLyricsWithTimestamps('translated', translatedLyrics);
+            renderLyrics('original');
+            renderLyrics('translated');
+        }
+
+        function getLyricData() {
+            const lyricData = localStorage.getItem('lyricCollection');
+            return lyricData ? JSON.parse(lyricData) : {};
+        }
+
+        function clearAllData() {
+            if (confirm("Are you sure you want to clear ALL your lyric data? This cannot be undone!")) {
+                localStorage.removeItem('lyricCollection');
+                songData = {};
+                loadSongList();
+                originalLyricLinesContainer.innerHTML = "";
+                translatedLyricLinesContainer.innerHTML = "";
+                originalLyricInputTextarea.value = "";
+                translatedLyricInputTextarea.value = "";
+                audioPlayer.src = "";
+                audioTimeDisplay.textContent = "00:00 / 00:00";
+                audioProgressBar.value = 0;
+                currentSongTitle = null;
+                resetHighlighting();
+                noSongSelectedMessage.textContent = "Lyric collection cleared.";
+            }
+        }
+
+        function handleAudioUpload(event) { // **Corrected handleAudioUpload function**
+            if (!currentSongTitle) {
+                alert("Please select or add a song first before uploading audio.");
+                audioUploadInput.value = '';
+                return;
+            }
+
+            const file = event.target.files[0];
+            if (file && file.type.startsWith('audio/')) {
+                const audioURL = URL.createObjectURL(file);
+                songData[currentSongTitle].audioFile = audioURL;
+                localStorage.setItem('lyricCollection', JSON.stringify(songData));
+                audioPlayer.src = audioURL;
+                updateTimeDisplay();
+                audioPlayer.volume = 0.30;
+                volumeSliderElem.value = 0.30;
+            } else {
+                alert("Please upload a valid MP3 audio file.");
+                audioUploadInput.value = '';
+            }
+            // **Robustly clear file input by replacing it with a clone**
+            const newInput = audioUploadInput.cloneNode(true);
+            audioUploadInput.parentNode.replaceChild(newInput, audioUploadInput);
+            // Re-attach event listener to the new input element
+            audioUploadInput = document.getElementById('audioUpload');
+            audioUploadInput.addEventListener('change', handleAudioUpload);
+        }
+
+        function editSongTitle(oldTitle, songItemDiv) {
+            const titleSpan = songItemDiv.querySelector('.song-title');
+            const actionsDiv = songItemDiv.querySelector('.song-actions');
+
+            titleSpan.style.display = 'none';
+            actionsDiv.style.display = 'none';
+
+            const editInput = document.createElement('input');
+            editInput.type = 'text';
+            editInput.classList.add('song-edit-input');
+            editInput.value = oldTitle;
+
+            const saveButton = document.createElement('button');
+            saveButton.textContent = 'Save';
+            const cancelButton = document.createElement('button');
+            cancelButton.textContent = 'Cancel';
+
+            const editActionsDiv = document.createElement('div');
+            editActionsDiv.classList.add('song-actions');
+            editActionsDiv.appendChild(saveButton);
+            editActionsDiv.appendChild(cancelButton);
+
+            songItemDiv.insertBefore(editInput, actionsDiv);
+            songItemDiv.insertBefore(editActionsDiv, actionsDiv);
+
+            editInput.focus();
+
+            saveButton.onclick = (event) => {
+                event.stopPropagation();
+                const newTitle = editInput.value.trim();
+                if (newTitle && newTitle !== oldTitle) {
+                    if (songData[newTitle]) {
+                        alert("Song title already exists. Please use a different title.");
+                        return;
+                    }
+                    const lyricsAndAudio = songData[oldTitle];
+                    delete songData[oldTitle];
+                    songData[newTitle] = lyricsAndAudio;
+                    localStorage.setItem('lyricCollection', JSON.stringify(songData));
+
+                    if (currentSongTitle === oldTitle) {
+                        currentSongTitle = newTitle;
+                    }
+                    loadSongList();
+                    selectSong(newTitle);
+                } else {
+                    cancelEdit();
+                }
+            };
+
+            cancelButton.onclick = (event) => {
+                event.stopPropagation();
+                cancelEdit();
+            };
+
+            function cancelEdit() {
+                songItemDiv.removeChild(editInput);
+                songItemDiv.removeChild(editActionsDiv);
+                titleSpan.style.display = '';
+                actionsDiv.style.display = '';
+            }
+        }
+
+
+        function deleteSong(title) {
+            if (confirm(`Are you sure you want to delete "${title}"?`)) {
+                delete songData[title];
+                localStorage.setItem('lyricCollection', JSON.stringify(songData));
+                if (currentSongTitle === title) {
+                    currentSongTitle = null;
+                    originalLyricLinesContainer.innerHTML = "Select a song from the list.";
+                    translatedLyricLinesContainer.innerHTML = "";
+                    originalLyricInputTextarea.value = "";
+                    translatedLyricInputTextarea.value = "";
+                    audioPlayer.src = "";
+                    audioTimeDisplay.textContent = "00:00 / 00:00";
+                    audioProgressBar.value = 0;
+                    resetHighlighting();
+                }
+                loadSongList();
+            }
+        }
+
+        function syncLyrics() { // **Modified syncLyrics function**
+            if (!currentSongTitle || !lyricDataParsed.original.length) return;
+
+            const currentTime = audioPlayer.currentTime;
+            audioProgressBar.value = currentTime / audioPlayer.duration || 0;
+
+            let currentOriginalLyricLineText = ""; // **Variable for original lyric line text**
+            let currentTranslatedLyricLineText = ""; // **Variable for translated lyric line text**
+
+
+            ['original', 'translated'].forEach(lyricType => {
+                const linesContainer = (lyricType === 'original') ? originalLyricLinesContainer : translatedLyricLinesContainer;
+                const parsedLyrics = lyricDataParsed[lyricType];
+
+
+                for (let i = 0; i < parsedLyrics.length; i++) {
+                    const lineData = parsedLyrics[i];
+                    if (lineData.timestamp !== null && currentTime >= lineData.timestamp) {
+                        if (currentHighlightedLineIndex[lyricType] !== i) {
+                            if (currentHighlightedLineIndex[lyricType] !== -1) {
+                                const prevLine = linesContainer.querySelector(`.lyric-line[data-line-index="${currentHighlightedLineIndex[lyricType]}"]`);
+                                if (prevLine) prevLine.classList.remove('highlighted');
+                            }
+                            const currentLine = linesContainer.querySelector(`.lyric-line[data-line-index="${i}"]`);
+                            if (currentLine) {
+                                currentLine.classList.add('highlighted');
+                                if (lyricType === 'original') {
+                                    currentOriginalLyricLineText = lineData.text; // **Get original lyric line text**
+                                } else if (lyricType === 'translated') {
+                                    currentTranslatedLyricLineText = lineData.text; // **Get translated lyric line text**
+                                }
+                            }
+                            currentHighlightedLineIndex[lyricType] = i;
+                        }
+                    }
+                }
+            });
+            updateLyricsWindow(currentOriginalLyricLineText, currentTranslatedLyricLineText); // **Update lyrics window with BOTH lyric lines**
+        }
+
+        function openLyricsWindow() {
+            if (lyricsWindow && !lyricsWindow.closed) {
+                lyricsWindow.focus();
+                return;
+            }
+
+            // Special window features for transparency
+            const windowFeatures = `
+                width=800,height=200,
+                left=100,top=100,
+                alwaysRaised=yes,
+                transparent=yes,
+                titlebar=no,
+                menubar=no,
+                toolbar=no
+            `;
+
+            lyricsWindow = window.open(
+                'lyrics_display.html',
+                'lyricsWindow',
+                windowFeatures
+            );
+
+            if (!lyricsWindow) {
+                alert('Popup blocked! Please allow popups for lyrics overlay.');
+            } else {
+                // Initial position adjustment
+                lyricsWindow.moveTo(
+                    screen.width - 850,
+                    screen.height - 250
+                );
+            }
+        }
+
+        function updateLyricsWindow(originalLyricText, translatedLyricText) {
+            if (lyricsWindow && !lyricsWindow.closed) {
+                // Add smooth scrolling and visual emphasis
+                lyricsWindow.postMessage({
+                    originalLyric: originalLyricText,
+                    translatedLyric: translatedLyricText,
+                    timestamp: Date.now() // Force update
+                }, '*');
+
+                // Keep window on top (works best in Electron, but helps in some browsers)
+                try {
+                    lyricsWindow.focus();
+                } catch (e) {
+                    // Quietly handle any focus errors
+                }
+            }
+        }
+
+        function exportLyrics() { // **New function to export lyrics as JSON**
+            const lyricData = getLyricData(); // Get all lyric data from local storage
+            const jsonString = JSON.stringify(lyricData, null, 2); // Convert to JSON, pretty-printed
+
+            const blob = new Blob([jsonString], { type: 'application/json' }); // Create Blob
+            const url = URL.createObjectURL(blob); // Create URL for the Blob
+            const downloadLink = document.createElement('a'); // Create a link element
+
+            downloadLink.href = url; // Set link's href to the Blob URL
+            downloadLink.download = 'lyric_collection.json'; // Set suggested filename
+            document.body.appendChild(downloadLink); // Append link to the body
+            downloadLink.click(); // Programmatically click the link to trigger download
+            document.body.removeChild(downloadLink); // Remove link from the body after download
+            URL.revokeObjectURL(url); // Revoke the Blob URL to free up resources
+        }
+
+        function resetHighlighting() {
+            ['original', 'translated'].forEach(lyricType => {
+                if (currentHighlightedLineIndex[lyricType] !== -1) {
+                    const linesContainer = (lyricType === 'original') ? originalLyricLinesContainer : translatedLyricLinesContainer;
+                    const prevLine = linesContainer.querySelector(`.lyric-line[data-line-index="${currentHighlightedLineIndex[lyricType]}"]`);
+                    if (prevLine) prevLine.classList.remove('highlighted');
+                    currentHighlightedLineIndex[lyricType] = -1;
+                }
+            });
+        }
+
+        function updateTimeDisplay() { // **Modified updateTimeDisplay function**
+            const currentTime = audioPlayer.currentTime;
+            const duration = audioPlayer.duration;
+
+            const currentMinutes = Math.floor(currentTime / 60);
+            const currentSeconds = Math.floor(currentTime % 60);
+            const milliseconds = Math.floor((currentTime % 1) * 1000);
+            const durationMinutes = Math.floor(duration / 60);
+            const durationSeconds = Math.floor(duration % 60);
+
+
+            const currentTimeStr = String(currentMinutes).padStart(2, '0') + ':' + String(currentSeconds).padStart(2, '0') + '.' + String(milliseconds).padStart(3, '0');
+            const durationTimeStr = String(durationMinutes).padStart(2, '0') + ':' + String(durationSeconds).padStart(2, '0');
+
+            audioTimeDisplay.textContent = currentTimeStr + ' / ' + durationTimeStr;
+            audioProgressBarElem.style.width = (currentTime / duration * 100) + '%'; // **Update progress bar width**
+        }
+
+        function togglePlay() { // **New function for play/pause**
+            if (audioPlayer.paused) {
+                audioPlayer.play();
+                playPauseIcon.classList.remove('fa-play');
+                playPauseIcon.classList.add('fa-pause');
+            } else {
+                audioPlayer.pause();
+                playPauseIcon.classList.remove('fa-pause');
+                playPauseIcon.classList.add('fa-play');
+            }
+        }
+
+        function seekAudio(event) { // **New function for seeking**
+            const progressContainer = document.querySelector('.progress-container');
+            const progressBarWidth = progressContainer.offsetWidth;
+            const clickPositionX = event.clientX - progressContainer.getBoundingClientRect().left;
+            const seekTime = (clickPositionX / progressBarWidth) * audioPlayer.duration;
+            audioPlayer.currentTime = seekTime;
+        }
+
+        function setVolume(volume) { // **New function to set volume**
+            audioPlayer.volume = volume;
+            volumeSliderElem.value = volume; // Keep slider and audio volume in sync
+            updateVolumeIcon(volume); // Update volume icon
+        }
+
+        function toggleVolumeSlider() { // **New function to toggle volume slider visibility**
+            isVolumeSliderVisible = !isVolumeSliderVisible;
+            volumeSliderElem.style.display = isVolumeSliderVisible ? 'inline-block' : 'none';
+        }
+
+        function updateVolumeIcon(volume) { // **New function to update volume icon**
+            volumeIcon.classList.remove('fa-volume-up', 'fa-volume-down', 'fa-volume-off');
+            if (volume === 0) {
+                volumeIcon.classList.add('fa-volume-off');
+            } else if (volume < 0.5) {
+                volumeIcon.classList.add('fa-volume-down');
+            } else {
+                volumeIcon.classList.add('fa-volume-up');
+            }
+        }
+
+        function syncTimestampOriginal() {
+            syncTimestamp('original');
+        }
+
+        function syncTimestampTranslated() {
+            syncTimestamp('translated');
+        }
+
+
+        function syncTimestamp(lyricType) {
+            const currentTime = audioPlayer.currentTime;
+            const minutes = Math.floor(currentTime / 60);
+            const seconds = Math.floor(currentTime % 60);
+            const milliseconds = Math.floor((currentTime % 1) * 1000);
+
+            const timestampStr = `[${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}]`;
+            const textarea = (lyricType === 'original') ? originalLyricInputTextarea : translatedLyricInputTextarea;
+
+            previousLyricText[lyricType] = textarea.value;
+            updateUndoButtonState();
+
+
+            const selectionStart = textarea.selectionStart;
+            const textBeforeCursor = textarea.value.substring(0, selectionStart);
+            const textAfterCursor = textarea.value.substring(textarea.selectionStart, textarea.value.length);
+
+            textarea.value = textBeforeCursor + timestampStr + " " + textAfterCursor;
+            textarea.selectionStart = textarea.selectionEnd = selectionStart + timestampStr.length + 1;
+        }
+
+        function undoTimestampOriginal() {
+            undoTimestamp('original');
+        }
+
+        function undoTimestampTranslated() {
+            undoTimestamp('translated');
+        }
+
+        function undoTimestamp(lyricType) {
+            const textarea = (lyricType === 'original') ? originalLyricInputTextarea : translatedLyricInputTextarea;
+            if (previousLyricText[lyricType] !== null) {
+                textarea.value = previousLyricText[lyricType];
+                previousLyricText[lyricType] = null;
+                updateUndoButtonState();
+            }
+        }
+
+        function updateUndoButtonState() {
+            undoButtonOriginal.disabled = previousLyricText.original === null;
+            undoButtonTranslated.disabled = previousLyricText.translated === null;
+        }
+
+
+
+        songSearchInput.addEventListener('input', loadSongList);
+    </script>
+</body>
+
+</html>
